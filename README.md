@@ -1,6 +1,6 @@
 The SIDiM project was created as a final project for the Information Systems undergraduate course at Veris Metrocamp college.
 
-This project was created by four developers in 2012:
+This project was created by four developers in 2012: <br/>
 Adriano dos Santos, Felipe Silvestre, Pedro Rafael, Rene Argento
 
 SIDiM is a system for real state brokers and people looking to buy properties. It is composed of two modules:
