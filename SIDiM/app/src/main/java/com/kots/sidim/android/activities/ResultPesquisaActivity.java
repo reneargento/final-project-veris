@@ -1,0 +1,266 @@
+package com.kots.sidim.android.activities;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Parcelable;
+import android.view.LayoutInflater;
+import android.view.View;
+
+import android.widget.AbsListView;
+import android.widget.AbsListView.OnScrollListener;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import com.kots.sidim.android.R;
+import com.kots.sidim.android.adapter.ImovelAdapter;
+import com.kots.sidim.android.config.ConfigGlobal;
+import com.kots.sidim.android.config.ValidacaoGeral;
+import com.kots.sidim.android.exception.SiDIMException;
+import com.kots.sidim.android.model.FiltroImovel;
+import com.kots.sidim.android.model.ImovelMobile;
+import com.kots.sidim.android.server.SiDIMControllerServer;
+
+import de.keyboardsurfer.android.widget.crouton.Crouton;
+import de.keyboardsurfer.android.widget.crouton.Style;
+
+public class ResultPesquisaActivity extends MainBarActivity {
+
+	ListView listResult;
+	List<ImovelMobile> imoveis;
+	List<ImovelMobile> newImoveis;
+	FiltroImovel filtro;
+	SiDIMControllerServer sidimController;
+	ProgressBar progressBar;
+	ImovelAdapter adapter;
+	ProgressDialog progressDialog;
+	boolean buscando, paraBusca;
+	
+	LinearLayout layoutLoading;
+
+	@SuppressLint("HandlerLeak")
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_result_pesquisa,
+				ConfigGlobal.MENU_INDEX_PESQUISAR_IMOVEL);
+
+		paraBusca = false;
+		
+		sidimController = SiDIMControllerServer.getInstance(instance);
+		
+		imoveis = new ArrayList<ImovelMobile>();
+		adapter = new ImovelAdapter(instance, imoveis);
+
+		LayoutInflater inflater = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		View v = inflater.inflate(R.layout.progress_bar, null);
+		layoutLoading = (LinearLayout) v;
+		progressBar = (ProgressBar) v.findViewById(R.id.progressBar1);
+
+
+		if (getIntent() != null) {
+			if (getIntent().getSerializableExtra("filtroimovel") instanceof FiltroImovel) {
+				filtro = (FiltroImovel) getIntent().getSerializableExtra(
+						"filtroimovel");
+
+			}
+		}
+
+		if (filtro != null) {
+
+			instance.runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					progressBar.setVisibility(View.VISIBLE);
+					
+					showDialog();
+				}
+			});
+
+			final Handler handler = new Handler() {
+				@Override
+				public void handleMessage(final Message msgs) {
+
+					String msgerror = msgs.getData().getString("msgerror");
+					if (ValidacaoGeral.validaCampoVazio(msgerror)) {						
+						Crouton.makeText(instance, msgerror, Style.ALERT).show();
+					} else {
+						@SuppressWarnings("unchecked")
+						List<ImovelMobile> newImoveis = (List<ImovelMobile>) msgs.obj;
+						if (newImoveis != null && newImoveis.size() > 0) {
+							imoveis.addAll(newImoveis);	
+						adapter = new ImovelAdapter(instance, imoveis);
+							
+						listResult.setAdapter(adapter);
+						adapter.notifyDataSetChanged();
+						
+						}
+					}
+					
+					if(progressDialog != null){
+						progressDialog.dismiss();
+					}
+					
+					buscando = false;
+
+				}
+			};
+
+			Thread thread = new Thread() {
+
+				@Override
+				public void run() {
+
+					try {
+						buscando = true;
+						newImoveis = sidimController.buscarImoveis(filtro);
+						filtro.setIndexBuscas(filtro.getIndexBuscas() + 15);
+						
+						Message message = handler.obtainMessage(1, newImoveis);
+                        handler.sendMessage(message);
+					} catch (SiDIMException e) {
+
+						Bundle data = new Bundle();
+						data.putString("msgerror", e.getMessage());
+						Message msg = new Message();
+						msg.setData(data);
+						handler.sendMessage(msg);
+					}
+
+				}
+			};
+
+			thread.start();
+		}
+
+		listResult = (ListView) findViewById(R.id.resultPesquisaListImoveis);
+
+		listResult.setOnScrollListener(new OnScrollListener() {
+
+			@Override
+			public void onScrollStateChanged(AbsListView view, int scrollState) {
+			}
+
+			@Override
+			public void onScroll(AbsListView view, int firstVisibleItem,
+					int visibleItemCount, int totalItemCount) {
+				
+				if ((firstVisibleItem + visibleItemCount) == totalItemCount && !buscando && totalItemCount > 0 && !paraBusca) {
+					buscando = true;
+
+					instance.runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							//listResult.addFooterView(layoutLoading);
+							progressBar.setVisibility(View.VISIBLE);
+							
+							//showDialog();
+						}
+					});
+
+					final Handler handler2 = new Handler() {
+						@SuppressLint("HandlerLeak")
+						@Override
+						public void handleMessage(final Message msgs) {
+
+							String msgerror = msgs.getData().getString("msgerror");
+							if (!ValidacaoGeral.validaCampoVazio(msgerror)) {
+				
+								if (imoveis != null && imoveis.size() > 0) {
+									
+									//SessionUserSidim.clearImages();
+									
+									if(msgs.obj != null){
+									
+											@SuppressWarnings("unchecked")
+											List<ImovelMobile> newImoveis = (List<ImovelMobile>)msgs.obj ;
+											if(newImoveis != null && newImoveis.size() > 0){
+												Parcelable state = listResult.onSaveInstanceState();
+												adapter = new ImovelAdapter(instance,
+														imoveis);
+												
+												listResult.setAdapter(adapter);
+												adapter.notifyDataSetChanged();
+												
+												
+												listResult.onRestoreInstanceState(state);
+											}
+		
+											buscando = false;									
+											} else {
+												buscando = true;
+												
+											}
+									}																
+							}
+
+								progressBar.setVisibility(View.INVISIBLE);
+
+						}
+					};
+
+					Thread thread = new Thread() {
+
+						@Override
+						public void run() {
+
+							if (filtro != null) {
+
+								try {
+									newImoveis = sidimController.buscarImoveis(filtro);
+									if(newImoveis == null || newImoveis.size() <= 0){
+										paraBusca = true;
+									} else {
+										filtro.setIndexBuscas(filtro.getIndexBuscas() + 15);
+										imoveis.addAll(newImoveis);
+										Message message = handler2.obtainMessage(1, newImoveis);
+										handler2.sendMessage(message);
+									}
+									
+									
+								} catch (SiDIMException e) {
+									paraBusca = true;
+									Bundle data = new Bundle();
+									data.putString("msgerror", e.getMessage());
+									Message msg = new Message();
+									msg.setData(data);
+									handler2.sendMessage(msg);
+
+								}
+								Message message = handler2.obtainMessage(1, null);
+								handler2.sendMessage(message);
+							}
+						}
+					};
+
+					thread.start();
+
+				}
+
+			}
+		});
+
+		listResult.addFooterView(layoutLoading);
+	}
+	
+	
+	private void showDialog() {
+		progressDialog = ProgressDialog.show(this, "", "Buscando Imóveis...",
+				true, false);
+	}
+	
+	@Override
+	  protected void onDestroy() {
+	    // Workaround until there's a way to detach the Activity from Crouton while
+	    // there are still some in the Queue.
+	    Crouton.clearCroutonsForActivity(this);
+	    super.onDestroy();
+	  }
+
+}

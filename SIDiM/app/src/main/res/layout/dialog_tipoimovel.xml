@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <ListView
+        android:id="@+id/dialogTipoImovelList"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:layout_weight="0.71" >
+
+    </ListView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical" >
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" >
+
+            <Button
+                android:id="@+id/dialogTipoImovelBtLimpar"
+                style="@style/ButtonCleanOrange"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Limpar Todos"
+                android:textSize="9dp" />
+
+            <Button
+                android:id="@+id/dialogTipoImovelBtTodosTipos"
+                style="@style/ButtonCleanOrange"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Todos Tipos"
+                android:textSize="9dp" />
+
+            <Button
+                android:id="@+id/dialogTipoImovelBtConcluido"
+                style="@style/ButtonCleanOrange"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Concluído"
+                android:textSize="9dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
